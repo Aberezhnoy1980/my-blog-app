@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS posts (
     text TEXT NOT NULL,
     tags TEXT NOT NULL,
     likes_count INTEGER NOT NULL DEFAULT 0,
-    image_data BLOB,
+    image_data BYTEA,
     image_content_type VARCHAR(100),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
