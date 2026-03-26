@@ -9,11 +9,13 @@ import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 
 @Configuration
+@EnableTransactionManagement
 @PropertySources({
         @PropertySource("classpath:application.properties"),
         @PropertySource(value = "classpath:application-${spring.profiles.active:dev}.properties")
