@@ -62,19 +62,21 @@ class BlogControllersIntegrationTest {
                 List.of("java", "spring")
         );
 
-        mockMvc.perform(post("/api/posts")
+        MvcResult createPostResult = mockMvc.perform(post("/api/posts")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(createRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("Controller post"));
+                .andExpect(jsonPath("$.title").value("Controller post"))
+                .andReturn();
+        long postId = objectMapper.readTree(createPostResult.getResponse().getContentAsString()).get("id").asLong();
 
-        mockMvc.perform(get("/api/posts/1"))
+        mockMvc.perform(get("/api/posts/{id}", postId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1));
+                .andExpect(jsonPath("$.id").value(postId));
 
-        mockMvc.perform(post("/api/posts/1"))
+        mockMvc.perform(post("/api/posts/{id}", postId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1));
+                .andExpect(jsonPath("$.id").value(postId));
     }
 
     @Test
