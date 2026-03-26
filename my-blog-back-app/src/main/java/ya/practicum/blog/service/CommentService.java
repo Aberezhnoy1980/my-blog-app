@@ -24,6 +24,9 @@ public class CommentService {
         this.postRepository = postRepository;
     }
 
+    /**
+     * Returns all comments for a given post.
+     */
     @Transactional(readOnly = true)
     public List<CommentResponseDto> getComments(long postId) {
         ensurePostExists(postId);
@@ -32,6 +35,9 @@ public class CommentService {
                 .toList();
     }
 
+    /**
+     * Returns one comment by post and comment ids.
+     */
     @Transactional(readOnly = true)
     public CommentResponseDto getComment(long postId, long commentId) {
         ensurePostExists(postId);
@@ -40,6 +46,9 @@ public class CommentService {
         return toResponse(comment);
     }
 
+    /**
+     * Creates a new comment.
+     */
     @Transactional
     public CommentResponseDto createComment(long postId, CommentUpsertRequestDto request) {
         ensurePostExists(postId);
@@ -48,6 +57,9 @@ public class CommentService {
         return toResponse(created);
     }
 
+    /**
+     * Updates comment content and keeps compatibility with known frontend URI bug.
+     */
     @Transactional
     public CommentResponseDto updateComment(long postId, long commentId, CommentUpsertRequestDto request) {
         validateRequest(postId, request, true);
@@ -61,6 +73,9 @@ public class CommentService {
         return toResponse(updated);
     }
 
+    /**
+     * Deletes a comment by ids.
+     */
     @Transactional
     public void deleteComment(long postId, long commentId) {
         ensurePostExists(postId);

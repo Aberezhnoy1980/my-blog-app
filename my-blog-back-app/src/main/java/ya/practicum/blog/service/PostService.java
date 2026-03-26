@@ -29,6 +29,9 @@ public class PostService {
         this.postRepository = postRepository;
     }
 
+    /**
+     * Returns post feed with backend-side search and pagination.
+     */
     @Transactional(readOnly = true)
     public PostListResponseDto getPosts(String search, int pageNumber, int pageSize) {
         validatePaging(pageNumber, pageSize);
@@ -47,12 +50,18 @@ public class PostService {
         return new PostListResponseDto(items, pageNumber > 1, pageNumber < lastPage, lastPage);
     }
 
+    /**
+     * Returns full post details by id.
+     */
     @Transactional(readOnly = true)
     public PostResponseDto getPost(long id) {
         Post post = postRepository.findById(id).orElseThrow(() -> new NotFoundException("Post not found"));
         return toPostResponse(post, false);
     }
 
+    /**
+     * Creates a new post.
+     */
     @Transactional
     public PostResponseDto createPost(PostUpsertRequestDto request) {
         validatePostRequest(request, false);
@@ -67,6 +76,9 @@ public class PostService {
         return toPostResponse(postRepository.create(toCreate), false);
     }
 
+    /**
+     * Updates an existing post by id.
+     */
     @Transactional
     public PostResponseDto updatePost(long id, PostUpsertRequestDto request) {
         validatePostRequest(request, true);
@@ -85,6 +97,9 @@ public class PostService {
         return toPostResponse(postRepository.update(id, toUpdate), false);
     }
 
+    /**
+     * Deletes a post and its child comments.
+     */
     @Transactional
     public void deletePost(long id) {
         if (postRepository.deleteById(id) == 0) {
@@ -92,12 +107,18 @@ public class PostService {
         }
     }
 
+    /**
+     * Increments likes counter for a post.
+     */
     @Transactional
     public int incrementLikes(long id) {
         postRepository.findById(id).orElseThrow(() -> new NotFoundException("Post not found"));
         return postRepository.incrementLikes(id);
     }
 
+    /**
+     * Updates post image bytes and content type.
+     */
     @Transactional
     public void updatePostImage(long id, byte[] imageData, String contentType) {
         if (imageData == null || imageData.length == 0) {
@@ -114,6 +135,9 @@ public class PostService {
         }
     }
 
+    /**
+     * Returns post image payload.
+     */
     @Transactional(readOnly = true)
     public PostImage getPostImage(long id) {
         postRepository.findById(id).orElseThrow(() -> new NotFoundException("Post not found"));

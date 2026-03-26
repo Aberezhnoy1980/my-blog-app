@@ -24,21 +24,33 @@ public class CommentController {
         this.commentService = commentService;
     }
 
+    /**
+     * Returns all comments for a post.
+     */
     @GetMapping
     public List<CommentResponseDto> getComments(@PathVariable("postId") long postId) {
         return commentService.getComments(postId);
     }
 
+    /**
+     * Returns a specific comment for a post.
+     */
     @GetMapping("/{id}")
     public CommentResponseDto getComment(@PathVariable("postId") long postId, @PathVariable("id") long id) {
         return commentService.getComment(postId, id);
     }
 
+    /**
+     * Creates a new comment for a post.
+     */
     @PostMapping
     public CommentResponseDto createComment(@PathVariable("postId") long postId, @RequestBody CommentUpsertRequestDto request) {
         return commentService.createComment(postId, request);
     }
 
+    /**
+     * Updates comment content.
+     */
     @PutMapping("/{id}")
     public CommentResponseDto updateComment(
             @PathVariable("postId") long postId,
@@ -48,6 +60,9 @@ public class CommentController {
         return commentService.updateComment(postId, id, request);
     }
 
+    /**
+     * Deletes a comment from the post.
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteComment(@PathVariable("postId") long postId, @PathVariable("id") long id) {
         commentService.deleteComment(postId, id);

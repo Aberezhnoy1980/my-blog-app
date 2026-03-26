@@ -30,6 +30,9 @@ public class PostController {
         this.postService = postService;
     }
 
+    /**
+     * Returns paginated post feed with search filters.
+     */
     @GetMapping
     public PostListResponseDto getPosts(
             @RequestParam("search") String search,
@@ -39,43 +42,67 @@ public class PostController {
         return postService.getPosts(search, pageNumber, pageSize);
     }
 
+    /**
+     * Compatibility endpoint for frontend contract that uses POST for post details.
+     */
     @PostMapping("/{id}")
     public PostResponseDto getPostCompat(@PathVariable("id") long id) {
         return postService.getPost(id);
     }
 
+    /**
+     * Returns full post details by id.
+     */
     @GetMapping("/{id}")
     public PostResponseDto getPost(@PathVariable("id") long id) {
         return postService.getPost(id);
     }
 
+    /**
+     * Creates a new post.
+     */
     @PostMapping
     public PostResponseDto createPost(@RequestBody PostUpsertRequestDto request) {
         return postService.createPost(request);
     }
 
+    /**
+     * Updates an existing post by id.
+     */
     @PutMapping("/{id}")
     public PostResponseDto updatePost(@PathVariable("id") long id, @RequestBody PostUpsertRequestDto request) {
         return postService.updatePost(id, request);
     }
 
+    /**
+     * Deletes post and its comments.
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePost(@PathVariable("id") long id) {
         postService.deletePost(id);
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Increments post likes count and returns current value.
+     */
     @PostMapping("/{id}/likes")
     public int incrementLikes(@PathVariable("id") long id) {
         return postService.incrementLikes(id);
     }
 
+    /**
+     * Updates post image.
+     */
     @PutMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> updateImage(@PathVariable("id") long id, @RequestPart("image") MultipartFile image) throws IOException {
         postService.updatePostImage(id, image.getBytes(), image.getContentType());
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Returns post image binary content.
+     */
     @GetMapping(value = "/{id}/image")
     public ResponseEntity<byte[]> getImage(@PathVariable("id") long id) {
         PostImage image = postService.getPostImage(id);
