@@ -14,6 +14,8 @@ import java.util.List;
 
 @Service
 public class CommentService {
+    private static final int MAX_COMMENT_LENGTH = 2000;
+
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
 
@@ -74,11 +76,14 @@ public class CommentService {
         if (!idAllowed && request.id() != null) {
             throw new BadRequestException("id must be empty for create");
         }
-        if (request.postId() != null && request.postId() != postId) {
+        if (!idAllowed && request.postId() != null && request.postId() != postId) {
             throw new BadRequestException("Path postId and body postId must be equal");
         }
         if (request.text() == null || request.text().isBlank()) {
             throw new BadRequestException("text is required");
+        }
+        if (request.text().trim().length() > MAX_COMMENT_LENGTH) {
+            throw new BadRequestException("text is too long");
         }
     }
 

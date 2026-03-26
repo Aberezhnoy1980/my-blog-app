@@ -7,7 +7,6 @@ import org.springframework.stereotype.Repository;
 import ya.practicum.blog.model.Comment;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -57,7 +56,7 @@ public class CommentRepository {
         String sql = "INSERT INTO comments(post_id, text) VALUES (?, ?)";
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
-            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement statement = connection.prepareStatement(sql, new String[] {"id"});
             statement.setLong(1, postId);
             statement.setString(2, text);
             return statement;

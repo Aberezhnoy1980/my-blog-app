@@ -8,7 +8,6 @@ import ya.practicum.blog.model.Post;
 import ya.practicum.blog.model.PostImage;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -59,7 +58,7 @@ public class PostRepository {
         String sql = "INSERT INTO posts(title, text, tags, likes_count) VALUES (?, ?, ?, ?)";
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
-            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement statement = connection.prepareStatement(sql, new String[] {"id"});
             statement.setString(1, post.title());
             statement.setString(2, post.text());
             statement.setString(3, serializeTags(post.tags()));
