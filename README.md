@@ -1,5 +1,7 @@
 # My Blog Back App
 
+[![CI](https://github.com/Aberezhnoy1980/my-blog-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Aberezhnoy1980/my-blog-app/actions/workflows/ci.yml)
+
 Бэкенд приложения-блога, разрабатываемый в рамках третьего спринта курса «Middle Java‑разработчик» Яндекс Практикума. Проект реализован на Java с использованием Spring Framework и разворачивается в сервлет‑контейнере (Tomcat/Jetty). 
 
 ## Цели проекта
