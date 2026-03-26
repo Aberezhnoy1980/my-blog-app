@@ -25,31 +25,31 @@ public class CommentController {
     }
 
     @GetMapping
-    public List<CommentResponseDto> getComments(@PathVariable long postId) {
+    public List<CommentResponseDto> getComments(@PathVariable("postId") long postId) {
         return commentService.getComments(postId);
     }
 
     @GetMapping("/{id}")
-    public CommentResponseDto getComment(@PathVariable long postId, @PathVariable long id) {
+    public CommentResponseDto getComment(@PathVariable("postId") long postId, @PathVariable("id") long id) {
         return commentService.getComment(postId, id);
     }
 
     @PostMapping
-    public CommentResponseDto createComment(@PathVariable long postId, @RequestBody CommentUpsertRequestDto request) {
+    public CommentResponseDto createComment(@PathVariable("postId") long postId, @RequestBody CommentUpsertRequestDto request) {
         return commentService.createComment(postId, request);
     }
 
     @PutMapping("/{id}")
     public CommentResponseDto updateComment(
-            @PathVariable long postId,
-            @PathVariable long id,
+            @PathVariable("postId") long postId,
+            @PathVariable("id") long id,
             @RequestBody CommentUpsertRequestDto request
     ) {
         return commentService.updateComment(postId, id, request);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteComment(@PathVariable long postId, @PathVariable long id) {
+    public ResponseEntity<Void> deleteComment(@PathVariable("postId") long postId, @PathVariable("id") long id) {
         commentService.deleteComment(postId, id);
         return ResponseEntity.ok().build();
     }

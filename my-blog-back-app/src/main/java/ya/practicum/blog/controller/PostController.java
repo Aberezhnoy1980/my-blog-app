@@ -32,20 +32,20 @@ public class PostController {
 
     @GetMapping
     public PostListResponseDto getPosts(
-            @RequestParam String search,
-            @RequestParam int pageNumber,
-            @RequestParam int pageSize
+            @RequestParam("search") String search,
+            @RequestParam("pageNumber") int pageNumber,
+            @RequestParam("pageSize") int pageSize
     ) {
         return postService.getPosts(search, pageNumber, pageSize);
     }
 
     @PostMapping("/{id}")
-    public PostResponseDto getPostCompat(@PathVariable long id) {
+    public PostResponseDto getPostCompat(@PathVariable("id") long id) {
         return postService.getPost(id);
     }
 
     @GetMapping("/{id}")
-    public PostResponseDto getPost(@PathVariable long id) {
+    public PostResponseDto getPost(@PathVariable("id") long id) {
         return postService.getPost(id);
     }
 
@@ -55,29 +55,29 @@ public class PostController {
     }
 
     @PutMapping("/{id}")
-    public PostResponseDto updatePost(@PathVariable long id, @RequestBody PostUpsertRequestDto request) {
+    public PostResponseDto updatePost(@PathVariable("id") long id, @RequestBody PostUpsertRequestDto request) {
         return postService.updatePost(id, request);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePost(@PathVariable long id) {
+    public ResponseEntity<Void> deletePost(@PathVariable("id") long id) {
         postService.deletePost(id);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{id}/likes")
-    public int incrementLikes(@PathVariable long id) {
+    public int incrementLikes(@PathVariable("id") long id) {
         return postService.incrementLikes(id);
     }
 
     @PutMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> updateImage(@PathVariable long id, @RequestPart("image") MultipartFile image) throws IOException {
+    public ResponseEntity<Void> updateImage(@PathVariable("id") long id, @RequestPart("image") MultipartFile image) throws IOException {
         postService.updatePostImage(id, image.getBytes(), image.getContentType());
         return ResponseEntity.ok().build();
     }
 
     @GetMapping(value = "/{id}/image")
-    public ResponseEntity<byte[]> getImage(@PathVariable long id) {
+    public ResponseEntity<byte[]> getImage(@PathVariable("id") long id) {
         PostImage image = postService.getPostImage(id);
         String contentType = image.contentType() == null ? MediaType.APPLICATION_OCTET_STREAM_VALUE : image.contentType();
         return ResponseEntity.ok()
