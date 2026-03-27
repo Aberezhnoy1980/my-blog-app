@@ -22,6 +22,8 @@ import ya.practicum.blog.dto.PostUpsertRequestDto;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -51,6 +53,9 @@ class BlogControllersIntegrationTest {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         jdbcTemplate.update("DELETE FROM comments");
         jdbcTemplate.update("DELETE FROM posts");
+        // H2: DELETE does not reset identity sequences; keep IDs deterministic for integration tests.
+        jdbcTemplate.execute("ALTER TABLE posts ALTER COLUMN id RESTART WITH 1");
+        jdbcTemplate.execute("ALTER TABLE comments ALTER COLUMN id RESTART WITH 1");
     }
 
     @Test
@@ -67,14 +72,18 @@ class BlogControllersIntegrationTest {
                         .content(objectMapper.writeValueAsString(createRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Controller post"))
+                .andExpect(jsonPath("$.id").exists())
                 .andReturn();
-        long postId = objectMapper.readTree(createPostResult.getResponse().getContentAsString()).get("id").asLong();
+        var idNode = objectMapper.readTree(createPostResult.getResponse().getContentAsString()).get("id");
+        assertNotNull(idNode, "Create post response must contain id");
+        long postId = idNode.asLong();
+        assertTrue(postId > 0, "Post id must be positive");
 
-        mockMvc.perform(get("/api/posts/{id}", postId))
+        mockMvc.perform(get("/api/posts/" + postId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(postId));
 
-        mockMvc.perform(post("/api/posts/{id}", postId))
+        mockMvc.perform(post("/api/posts/" + postId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(postId));
     }
