@@ -41,3 +41,4 @@ build/
 
 # Локальные файлы PostgreSQL (Docker bind mount из docker-compose.yml)
 postgres-data/
+**.drawio
