@@ -10,4 +10,10 @@ public record PostResponseDto(
         int likesCount,
         int commentsCount
 ) {
+    /**
+     * Compatibility alias for frontend variants that read postId instead of id.
+     */
+    public Long getPostId() {
+        return id;
+    }
 }

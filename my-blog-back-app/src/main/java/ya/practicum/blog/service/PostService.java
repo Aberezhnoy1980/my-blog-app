@@ -64,7 +64,7 @@ public class PostService {
      */
     @Transactional
     public PostResponseDto createPost(PostUpsertRequestDto request) {
-        validatePostRequest(request, false);
+        validatePostRequest(request, false, false);
         Post toCreate = new Post(
                 null,
                 request.title().trim(),
@@ -81,16 +81,17 @@ public class PostService {
      */
     @Transactional
     public PostResponseDto updatePost(long id, PostUpsertRequestDto request) {
-        validatePostRequest(request, true);
+        validatePostRequest(request, true, true);
         if (request.id() != null && request.id() != id) {
             throw new BadRequestException("Path id and body id must be equal");
         }
-        postRepository.findById(id).orElseThrow(() -> new NotFoundException("Post not found"));
+        Post existing = postRepository.findById(id).orElseThrow(() -> new NotFoundException("Post not found"));
+        List<String> normalizedTags = request.tags().isEmpty() ? existing.tags() : request.tags();
         Post toUpdate = new Post(
                 id,
                 request.title().trim(),
                 request.text().trim(),
-                request.tags(),
+                normalizedTags,
                 0,
                 0
         );
@@ -127,10 +128,11 @@ public class PostService {
         if (imageData.length > MAX_IMAGE_SIZE_BYTES) {
             throw new BadRequestException("Image is too large");
         }
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new BadRequestException("Unsupported image content type");
-        }
-        if (postRepository.updateImage(id, imageData, contentType) == 0) {
+        // Keep upload path compatible with different browser/filepicker behaviors.
+        String normalizedType = (contentType == null || contentType.isBlank())
+                ? "application/octet-stream"
+                : contentType;
+        if (postRepository.updateImage(id, imageData, normalizedType) == 0) {
             throw new NotFoundException("Post not found");
         }
     }
@@ -151,7 +153,7 @@ public class PostService {
         }
     }
 
-    private void validatePostRequest(PostUpsertRequestDto request, boolean idAllowed) {
+    private void validatePostRequest(PostUpsertRequestDto request, boolean idAllowed, boolean allowEmptyTagsForUpdate) {
         if (request == null) {
             throw new BadRequestException("Request body is required");
         }
@@ -173,7 +175,7 @@ public class PostService {
         if (request.tags() == null) {
             throw new BadRequestException("tags is required");
         }
-        if (request.tags().isEmpty()) {
+        if (request.tags().isEmpty() && !allowEmptyTagsForUpdate) {
             throw new BadRequestException("tags must contain at least one tag");
         }
         boolean hasInvalidTag = request.tags().stream()
