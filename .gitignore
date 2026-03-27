@@ -38,3 +38,6 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+# Локальные файлы PostgreSQL (Docker bind mount из docker-compose.yml)
+postgres-data/

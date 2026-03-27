@@ -4,14 +4,15 @@ import org.springframework.web.servlet.support.AbstractAnnotationConfigDispatche
 
 public class WebAppInitializer extends AbstractAnnotationConfigDispatcherServletInitializer {
 
+    /** One servlet context (no root): controllers must be visible to {@code DispatcherServlet}. */
     @Override
     protected Class<?>[] getRootConfigClasses() {
-        return new Class<?>[] {AppConfig.class};
+        return null;
     }
 
     @Override
     protected Class<?>[] getServletConfigClasses() {
-        return new Class<?>[] {WebMvcConfig.class};
+        return new Class<?>[] {DatabaseConfig.class, AppConfig.class, WebMvcConfig.class};
     }
 
     @Override

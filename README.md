@@ -1,8 +1,10 @@
-# My Blog Back App
+# My Blog App
 
 [![CI](https://github.com/Aberezhnoy1980/my-blog-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Aberezhnoy1980/my-blog-app/actions/workflows/ci.yml)
 
-Бэкенд приложения-блога, разрабатываемый в рамках третьего спринта курса «Middle Java‑разработчик» Яндекс Практикума. Проект реализован на Java с использованием Spring Framework и разворачивается в сервлет‑контейнере (Tomcat/Jetty). 
+Учебный full‑stack проект (спринт 3, Яндекс Практикум): бэкенд на Spring **без** Spring Boot, WAR в Tomcat, JDBC/JdbcTemplate, Flyway; фронт — готовый React за Nginx из материалов курса.
+
+Бэкенд реализован на Java с использованием Spring Framework и разворачивается в сервлет‑контейнере (Tomcat).
 
 ## Цели проекта
 
@@ -16,11 +18,32 @@
 
 Архитектура следует описанию из задания Практикума: 
 
-- **Фронтенд**: React‑приложение, работающее за Nginx, доступно по `http://localhost` и общающееся с бэкендом по REST. 
-- **Бэкенд**: Java‑приложение на Spring Framework 6.1+ без Spring Boot, запущенное в Tomcat и доступное по `http://localhost:8080`. 
-- **База данных**: PostgreSQL или H2 (в зависимости от профиля), хранит посты и комментарии. 
+- **Фронтенд**: React‑приложение за Nginx; в Docker единая точка входа — `http://localhost` (порт 80), API проксируется на бэкенд как `/api/...` (same origin).
+- **Бэкенд**: Spring MVC без Spring Boot, WAR в Tomcat; в compose доступен внутри сети как сервис `backend:8080`, снаружи — только через Nginx.
+- **База данных**: PostgreSQL (prod / Docker) или H2 (тесты, локальный dev), хранит посты и комментарии.
 
-Планируется единый `docker-compose.yml` для поднятия фронтенда, бэкенда и БД.
+### Docker Compose (PostgreSQL + Tomcat + Nginx)
+
+Из **корня** репозитория:
+
+```bash
+docker compose up --build
+```
+
+После старта:
+
+- UI: [http://localhost](http://localhost)
+- Smoke API через прокси: `curl -sS http://localhost/api/health`
+
+Тому же контракту `/api/...` соответствует прямой запуск Tomcat на машине: `http://localhost:8080/api/...` (профиль `prod`, переменные `DB_*` — см. `application-prod.properties`).
+
+**Фронтенд:** образ копирует содержимое `my-blog-front-app/dist` в Nginx. В архиве Практикума уже лежит собранный `dist` (`index.html` + `assets/`). Если когда‑нибудь останется один только `index.html` без чанков, страница и SPA‑маршруты начнут отдавать 404 — тогда нужен полный билд (`npm run build`) и замена `dist`.
+
+#### База данных (Docker) и миграции
+
+- **Персистентность:** каталог `./postgres-data` монтируется в контейнер PostgreSQL (`/var/lib/postgresql/data`), не коммитится (`.gitignore`). Пересборка образов приложения этот каталог не затрагивает.
+- **Flyway:** скрипты в `db/migration/` описывают **схему** БД; состояние применённых версий хранится в `flyway_schema_history`. Повторный запуск применяет только новые миграции; пользовательский контент в таблицах миграциями не перезаписывается.
+- **Сброс данных:** удаление `./postgres-data` или старт с пустым каталогом даёт новый экземпляр БД с повторным накатом миграций с `V1`.
 
 ## Функциональность бэкенда (кратко)
 
@@ -51,39 +74,32 @@
 - База данных: PostgreSQL (prod) / H2 (тесты, dev). 
 - Система сборки: Maven (war‑пакетирование, плагины для деплоя в контейнер).
 - Тестирование: JUnit 5, Spring TestContext Framework, WebMvc, H2. 
-- Контейнеризация (план): Docker, Docker Compose.
+- Docker, Docker Compose (`docker-compose.yml` в корне).
 
-## Структура репозитория (план)
+## Структура репозитория
 
 ```text
 .
-├── my-blog-back-app/              # Maven-проект бэкенда (Spring + war)
-├── my-blog-front-app/             # Фронтенд Практикума (распакованный и при необходимости исправленный)
-├── persist-db
+├── my-blog-back-app/          # Maven-модуль бэкенда (Spring, WAR)
+├── my-blog-front-app/         # Статический фронт Практикума + Dockerfile Nginx
+├── docker/
+│   └── backend/
+│       └── Dockerfile       # Сборка WAR + Tomcat (ROOT.war)
 ├── docs/
-│   ├── technical-spec.md # Техническое задание на бэкенд
-│   └── ...               # Дополнительная документация (prerequisites, диаграммы и т.п.)
-├── docker-compose.yml    # Оркестрация фронта, бэкенда и БД
+│   ├── technical-spec.md
+│   └── ...
+├── docker-compose.yml
+├── postgres-data/             # данные PostgreSQL (Docker), в git не входит
 └── README.md
 ```
 
-## Запуск фронтенда (из задания Практикума)
+## Локальный фронт без compose (как в задании Практикума)
 
-Фронтенд поднимается через Docker Compose из архива, предоставленного Практикумом: 
-
-1. Распаковать архив фронтенда.
-2. Перейти в директорию с `docker-compose.yaml`.
-3. Выполнить `docker compose up -d`.
-4. Проверить, что контейнер запущен через `docker ps`.
-5. Открыть `http://localhost` в браузере. 
-
-После реализации бэкенда фронтенд начнёт работать с ним по REST‑эндпоинтам, перечисленным выше. 
+Раньше в архиве был отдельный `docker-compose` только для Nginx. Сейчас оркестрация вынесена в корень; при необходимости можно собрать образ только фронта: `docker build -t my-blog-front ./my-blog-front-app`.
 
 ## Статус проекта
 
-- [x] Анализ задания и формирование технического задания (`docs/technical-spec.md`).
-- [ ] Базовая инициализация Maven‑проекта бэкенда.
-- [ ] Интеграция с выбранным сервлет‑контейнером и БД.
-- [ ] Реализация REST‑эндпоинтов.
-- [ ] Покрытие сервисного слоя и интеграций тестами.
-- [ ] Настройка Docker Compose и (опционально) CI/CD.
+- [x] Анализ задания и техническое задание (`docs/technical-spec.md`).
+- [x] Maven‑проект бэкенда, Tomcat, Flyway, профили dev/test/prod.
+- [x] REST по контракту с фронтом, тесты, CI (GitHub Actions).
+- [x] Docker Compose: PostgreSQL + Tomcat (WAR) + Nginx.
