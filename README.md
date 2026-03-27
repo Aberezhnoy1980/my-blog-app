@@ -18,8 +18,8 @@
 
 Архитектура следует описанию из задания Практикума: 
 
-- **Фронтенд**: React‑приложение за Nginx; в Docker единая точка входа — `http://localhost` (порт 80), API проксируется на бэкенд как `/api/...` (same origin).
-- **Бэкенд**: Spring MVC без Spring Boot, WAR в Tomcat; в compose доступен внутри сети как сервис `backend:8080`, снаружи — только через Nginx.
+- **Фронтенд**: React‑приложение за Nginx — UI на `http://localhost` (порт 80). Сборка Практикума обращается к API по **`http://localhost:8080/api/...`**; в Docker Tomcat проброшен на хост `:8080`, для запросов со страницы `:80` включён **CORS** в Spring.
+- **Бэкенд**: Spring MVC без Spring Boot, WAR в Tomcat; в compose также `8080:8080` и прокси `/api` через Nginx (удобно для `curl` на `http://localhost/api/...`).
 - **База данных**: PostgreSQL (prod / Docker) или H2 (тесты, локальный dev), хранит посты и комментарии.
 
 ### Docker Compose (PostgreSQL + Tomcat + Nginx)
@@ -37,7 +37,7 @@ docker compose up --build
 
 Тому же контракту `/api/...` соответствует прямой запуск Tomcat на машине: `http://localhost:8080/api/...` (профиль `prod`, переменные `DB_*` — см. `application-prod.properties`).
 
-**Фронтенд:** образ копирует содержимое `my-blog-front-app/dist` в Nginx. В архиве Практикума уже лежит собранный `dist` (`index.html` + `assets/`). Если когда‑нибудь останется один только `index.html` без чанков, страница и SPA‑маршруты начнут отдавать 404 — тогда нужен полный билд (`npm run build`) и замена `dist`.
+**Фронтенд:** образ копирует содержимое `my-blog-front-app/dist` в Nginx без изменений относительно архива Практикума (`index.html` + `assets/`). API в бандле задано как **`http://localhost:8080`** — в `docker-compose` сервис backend публикует этот порт на хост; ответы для запросов со страницы на порту 80 разрешены через **CORS** в `WebMvcConfig`.
 
 #### База данных (Docker) и миграции
 

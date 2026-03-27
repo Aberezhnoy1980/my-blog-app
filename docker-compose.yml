@@ -33,6 +33,9 @@ services:
       timeout: 5s
       retries: 12
       start_period: 90s
+    ports:
+      # Unchanged Practicum bundle: API base URL is http://localhost:8080 (SPA is on :80 via Nginx).
+      - "8080:8080"
     networks:
       - blog
 
