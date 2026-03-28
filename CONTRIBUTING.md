@@ -6,7 +6,7 @@ Thanks for your interest in improving this project.
 
 - Create a branch from `module_one_sprint_three_branch`.
 - Keep commits small and focused.
-- Use clear commit messages in imperative style (e.g. `Fix ...`, `Add ...`).
+- Use clear commit messages in imperative style (e.g. `Fix ...`, `Add ...`); optionally prefix with a light type tag (`fix:`, `refactor:`, `test:`, …) for history readability.
 - Open a PR to `main` when changes are ready.
 
 ## Local checks before PR
