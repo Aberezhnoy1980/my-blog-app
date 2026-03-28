@@ -2,6 +2,7 @@ package ya.practicum.blog.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ya.practicum.blog.BlogConstraints;
 import ya.practicum.blog.dto.PostListResponseDto;
 import ya.practicum.blog.dto.PostResponseDto;
 import ya.practicum.blog.dto.PostUpsertRequestDto;
@@ -18,10 +19,6 @@ import java.util.Optional;
 
 @Service
 public class PostService {
-    private static final int MAX_TITLE_LENGTH = 255;
-    private static final int MAX_POST_TEXT_LENGTH = 10_000;
-    private static final int MAX_TAG_LENGTH = 64;
-    private static final int MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
     private final PostRepository postRepository;
 
@@ -125,7 +122,7 @@ public class PostService {
         if (imageData == null || imageData.length == 0) {
             throw new BadRequestException("Image is empty");
         }
-        if (imageData.length > MAX_IMAGE_SIZE_BYTES) {
+        if (imageData.length > BlogConstraints.MAX_IMAGE_SIZE_BYTES) {
             throw new BadRequestException("Image is too large");
         }
         // Keep upload path compatible with different browser/filepicker behaviors.
@@ -163,13 +160,13 @@ public class PostService {
         if (request.title() == null || request.title().isBlank()) {
             throw new BadRequestException("title is required");
         }
-        if (request.title().trim().length() > MAX_TITLE_LENGTH) {
+        if (request.title().trim().length() > BlogConstraints.MAX_TITLE_LENGTH) {
             throw new BadRequestException("title is too long");
         }
         if (request.text() == null || request.text().isBlank()) {
             throw new BadRequestException("text is required");
         }
-        if (request.text().trim().length() > MAX_POST_TEXT_LENGTH) {
+        if (request.text().trim().length() > BlogConstraints.MAX_POST_TEXT_LENGTH) {
             throw new BadRequestException("text is too long");
         }
         if (request.tags() == null) {
@@ -179,14 +176,14 @@ public class PostService {
             throw new BadRequestException("tags must contain at least one tag");
         }
         boolean hasInvalidTag = request.tags().stream()
-                .anyMatch(tag -> tag == null || tag.isBlank() || tag.trim().length() > MAX_TAG_LENGTH);
+                .anyMatch(tag -> tag == null || tag.isBlank() || tag.trim().length() > BlogConstraints.MAX_TAG_LENGTH);
         if (hasInvalidTag) {
             throw new BadRequestException("tags contain invalid values");
         }
     }
 
     private PostResponseDto toPostResponse(Post post, boolean truncateText) {
-        String text = truncateText ? truncate(post.text(), 128) : post.text();
+        String text = truncateText ? truncate(post.text(), BlogConstraints.POST_LIST_TEXT_PREVIEW_LENGTH) : post.text();
         return new PostResponseDto(
                 post.id(),
                 post.title(),

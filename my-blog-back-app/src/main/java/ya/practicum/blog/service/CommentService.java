@@ -1,6 +1,7 @@
 package ya.practicum.blog.service;
 
 import org.springframework.stereotype.Service;
+import ya.practicum.blog.BlogConstraints;
 import org.springframework.transaction.annotation.Transactional;
 import ya.practicum.blog.dto.CommentResponseDto;
 import ya.practicum.blog.dto.CommentUpsertRequestDto;
@@ -14,7 +15,6 @@ import java.util.List;
 
 @Service
 public class CommentService {
-    private static final int MAX_COMMENT_LENGTH = 2000;
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
@@ -97,7 +97,7 @@ public class CommentService {
         if (request.text() == null || request.text().isBlank()) {
             throw new BadRequestException("text is required");
         }
-        if (request.text().trim().length() > MAX_COMMENT_LENGTH) {
+        if (request.text().trim().length() > BlogConstraints.MAX_COMMENT_LENGTH) {
             throw new BadRequestException("text is too long");
         }
     }
