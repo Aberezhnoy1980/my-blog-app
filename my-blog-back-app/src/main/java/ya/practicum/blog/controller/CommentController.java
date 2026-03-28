@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -44,7 +45,7 @@ public class CommentController {
      * Creates a new comment for a post.
      */
     @PostMapping
-    public CommentResponseDto createComment(@PathVariable("postId") long postId, @RequestBody CommentUpsertRequestDto request) {
+    public CommentResponseDto createComment(@PathVariable("postId") long postId, @Valid @RequestBody CommentUpsertRequestDto request) {
         return commentService.createComment(postId, request);
     }
 
@@ -55,7 +56,7 @@ public class CommentController {
     public CommentResponseDto updateComment(
             @PathVariable("postId") long postId,
             @PathVariable("id") long id,
-            @RequestBody CommentUpsertRequestDto request
+            @Valid @RequestBody CommentUpsertRequestDto request
     ) {
         return commentService.updateComment(postId, id, request);
     }

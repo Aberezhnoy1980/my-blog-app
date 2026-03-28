@@ -11,6 +11,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.transaction.annotation.Transactional;
 import ya.practicum.blog.config.DatabaseConfig;
+import ya.practicum.blog.config.ValidationConfig;
 import ya.practicum.blog.dto.CommentResponseDto;
 import ya.practicum.blog.dto.CommentUpsertRequestDto;
 import ya.practicum.blog.dto.PostListResponseDto;
@@ -24,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringJUnitConfig(classes = {DatabaseConfig.class, BlogServicesIntegrationTest.ServiceTestConfig.class})
+@SpringJUnitConfig(classes = {DatabaseConfig.class, ValidationConfig.class, BlogServicesIntegrationTest.ServiceTestConfig.class})
 @ActiveProfiles("test")
 @TestPropertySource(properties = "spring.profiles.active=test")
 @Transactional

@@ -1,5 +1,7 @@
 package ya.practicum.blog.service;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ya.practicum.blog.BlogConstraints;
@@ -21,9 +23,11 @@ import java.util.Optional;
 public class PostService {
 
     private final PostRepository postRepository;
+    private final Validator beanValidator;
 
-    public PostService(PostRepository postRepository) {
+    public PostService(PostRepository postRepository, Validator beanValidator) {
         this.postRepository = postRepository;
+        this.beanValidator = beanValidator;
     }
 
     /**
@@ -154,31 +158,14 @@ public class PostService {
         if (request == null) {
             throw new BadRequestException("Request body is required");
         }
+        for (ConstraintViolation<PostUpsertRequestDto> v : beanValidator.validate(request)) {
+            throw new BadRequestException(v.getMessage());
+        }
         if (!idAllowed && request.id() != null) {
             throw new BadRequestException("id must be empty for create");
         }
-        if (request.title() == null || request.title().isBlank()) {
-            throw new BadRequestException("title is required");
-        }
-        if (request.title().trim().length() > BlogConstraints.MAX_TITLE_LENGTH) {
-            throw new BadRequestException("title is too long");
-        }
-        if (request.text() == null || request.text().isBlank()) {
-            throw new BadRequestException("text is required");
-        }
-        if (request.text().trim().length() > BlogConstraints.MAX_POST_TEXT_LENGTH) {
-            throw new BadRequestException("text is too long");
-        }
-        if (request.tags() == null) {
-            throw new BadRequestException("tags is required");
-        }
         if (request.tags().isEmpty() && !allowEmptyTagsForUpdate) {
             throw new BadRequestException("tags must contain at least one tag");
-        }
-        boolean hasInvalidTag = request.tags().stream()
-                .anyMatch(tag -> tag == null || tag.isBlank() || tag.trim().length() > BlogConstraints.MAX_TAG_LENGTH);
-        if (hasInvalidTag) {
-            throw new BadRequestException("tags contain invalid values");
         }
     }
 

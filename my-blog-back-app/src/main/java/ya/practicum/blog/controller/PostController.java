@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -67,7 +68,7 @@ public class PostController {
      * Creates a new post.
      */
     @PostMapping
-    public PostResponseDto createPost(@RequestBody PostUpsertRequestDto request) {
+    public PostResponseDto createPost(@Valid @RequestBody PostUpsertRequestDto request) {
         return postService.createPost(request);
     }
 
@@ -75,7 +76,7 @@ public class PostController {
      * Updates an existing post by id.
      */
     @PutMapping("/{id}")
-    public PostResponseDto updatePost(@PathVariable("id") long id, @RequestBody PostUpsertRequestDto request) {
+    public PostResponseDto updatePost(@PathVariable("id") long id, @Valid @RequestBody PostUpsertRequestDto request) {
         return postService.updatePost(id, request);
     }
 

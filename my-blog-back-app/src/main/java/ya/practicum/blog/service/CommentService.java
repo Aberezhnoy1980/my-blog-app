@@ -1,7 +1,8 @@
 package ya.practicum.blog.service;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import org.springframework.stereotype.Service;
-import ya.practicum.blog.BlogConstraints;
 import org.springframework.transaction.annotation.Transactional;
 import ya.practicum.blog.dto.CommentResponseDto;
 import ya.practicum.blog.dto.CommentUpsertRequestDto;
@@ -18,10 +19,12 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
+    private final Validator beanValidator;
 
-    public CommentService(CommentRepository commentRepository, PostRepository postRepository) {
+    public CommentService(CommentRepository commentRepository, PostRepository postRepository, Validator beanValidator) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
+        this.beanValidator = beanValidator;
     }
 
     /**
@@ -88,17 +91,14 @@ public class CommentService {
         if (request == null) {
             throw new BadRequestException("Request body is required");
         }
+        for (ConstraintViolation<CommentUpsertRequestDto> v : beanValidator.validate(request)) {
+            throw new BadRequestException(v.getMessage());
+        }
         if (!idAllowed && request.id() != null) {
             throw new BadRequestException("id must be empty for create");
         }
         if (!idAllowed && request.postId() != null && request.postId() != postId) {
             throw new BadRequestException("Path postId and body postId must be equal");
-        }
-        if (request.text() == null || request.text().isBlank()) {
-            throw new BadRequestException("text is required");
-        }
-        if (request.text().trim().length() > BlogConstraints.MAX_COMMENT_LENGTH) {
-            throw new BadRequestException("text is too long");
         }
     }
 
