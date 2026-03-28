@@ -14,6 +14,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 
+import ya.practicum.blog.db.migration.V4__Normalize_tags;
+
 @Configuration
 @EnableTransactionManagement
 @PropertySources({
@@ -48,6 +50,7 @@ public class DatabaseConfig {
                 .baselineOnMigrate(true)
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
+                .javaMigrations(new V4__Normalize_tags())
                 .load();
     }
 }

@@ -180,7 +180,8 @@ curl -sS "http://localhost:8080/api/posts?search=&pageNumber=1&pageSize=5"
 - Flyway migrations:
   - `V1__init_schema.sql` — schema;
   - `V2__demo_seed.sql` — demo posts/comments;
-  - `V3__demo_seed_more_comments.sql` — доп. demo comments.
+  - `V3__demo_seed_more_comments.sql` — доп. demo comments;
+  - `V4__Normalize_tags` (Java) — таблицы `tags` и `post_tags`, перенос из legacy CSV в `posts.tags`, затем удаление этой колонки.
 - На существующей БД применяются только новые migration versions (`flyway_schema_history`).
 
 ## Тестирование и CI
@@ -200,6 +201,7 @@ curl -sS "http://localhost:8080/api/posts?search=&pageNumber=1&pageSize=5"
 │   │   ├── controller/
 │   │   ├── service/
 │   │   ├── repository/
+│   │   ├── db/migration/                    # Flyway Java migrations
 │   │   ├── dto/
 │   │   └── model/
 │   └── src/main/resources/
