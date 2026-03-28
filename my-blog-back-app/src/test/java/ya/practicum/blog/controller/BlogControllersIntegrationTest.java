@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.web.SpringJUnitWebConfig;
@@ -17,6 +18,7 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import ya.practicum.blog.config.AppConfig;
 import ya.practicum.blog.config.DatabaseConfig;
 import ya.practicum.blog.config.WebMvcConfig;
+import ya.practicum.blog.BlogConstraints;
 import ya.practicum.blog.dto.CommentUpsertRequestDto;
 import ya.practicum.blog.dto.PostUpsertRequestDto;
 
@@ -35,6 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebAppConfiguration
 @ActiveProfiles("test")
 @TestPropertySource(properties = "spring.profiles.active=test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @Transactional
 class BlogControllersIntegrationTest {
 
@@ -139,5 +142,71 @@ class BlogControllersIntegrationTest {
         mockMvc.perform(get("/api/posts/404"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Post not found"));
+    }
+
+    @Test
+    void shouldReturnEmptyFeedForBlankSearchAndUnknownHashtag() throws Exception {
+        mockMvc.perform(get("/api/posts")
+                        .param("search", "")
+                        .param("pageNumber", "1")
+                        .param("pageSize", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.posts.length()").value(0))
+                .andExpect(jsonPath("$.lastPage").value(1));
+
+        mockMvc.perform(get("/api/posts")
+                        .param("search", "#nonexistent")
+                        .param("pageNumber", "1")
+                        .param("pageSize", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.posts.length()").value(0));
+    }
+
+    @Test
+    void shouldAcceptLargePageSizeWhenFewPosts() throws Exception {
+        mockMvc.perform(post("/api/posts")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(
+                                new PostUpsertRequestDto(null, "Solo", "body", List.of("solo")))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/posts")
+                        .param("search", "")
+                        .param("pageNumber", "1")
+                        .param("pageSize", "5000"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.posts.length()").value(1))
+                .andExpect(jsonPath("$.lastPage").value(1));
+    }
+
+    @Test
+    void shouldReturnBadRequestForNullPostText() throws Exception {
+        PostUpsertRequestDto invalid = new PostUpsertRequestDto(null, "Title", null, List.of("tag"));
+        mockMvc.perform(post("/api/posts")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("text is required"));
+    }
+
+    @Test
+    void shouldReturnBadRequestForOversizedTitle() throws Exception {
+        String tooLong = "x".repeat(BlogConstraints.MAX_TITLE_LENGTH + 1);
+        PostUpsertRequestDto invalid = new PostUpsertRequestDto(null, tooLong, "body", List.of("tag"));
+        mockMvc.perform(post("/api/posts")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("title is too long"));
+    }
+
+    @Test
+    void shouldReturnBadRequestForNonPositivePaging() throws Exception {
+        mockMvc.perform(get("/api/posts")
+                        .param("search", "")
+                        .param("pageNumber", "0")
+                        .param("pageSize", "10"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("pageNumber and pageSize must be positive"));
     }
 }

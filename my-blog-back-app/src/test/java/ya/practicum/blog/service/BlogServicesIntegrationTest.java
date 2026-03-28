@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @SpringJUnitConfig(classes = {DatabaseConfig.class, ValidationConfig.class, BlogServicesIntegrationTest.ServiceTestConfig.class})
 @ActiveProfiles("test")
 @TestPropertySource(properties = "spring.profiles.active=test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @Transactional
 class BlogServicesIntegrationTest {
     @Configuration
@@ -96,6 +98,14 @@ class BlogServicesIntegrationTest {
 
         PostListResponseDto page3 = postService.getPosts("", 3, 2);
         assertEquals(2, page3.posts().size());
+    }
+
+    @Test
+    void shouldReturnNoPostsForUnknownHashtag() {
+        postService.createPost(new PostUpsertRequestDto(null, "Tagged", "body", List.of("real")));
+        PostListResponseDto feed = postService.getPosts("#nonexistent", 1, 10);
+        assertTrue(feed.posts().isEmpty());
+        assertEquals(1, feed.lastPage());
     }
 
     @Test
