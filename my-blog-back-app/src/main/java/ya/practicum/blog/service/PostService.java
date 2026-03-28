@@ -37,15 +37,11 @@ public class PostService {
     public PostListResponseDto getPosts(String search, int pageNumber, int pageSize) {
         validatePaging(pageNumber, pageSize);
         SearchFilter filter = parseSearch(search);
-        List<Post> filtered = postRepository.findAll().stream()
-                .filter(post -> matches(post, filter))
-                .toList();
-
-        int total = filtered.size();
+        int total = postRepository.countPostsWithFilters(filter.titleQuery(), filter.tags());
         int lastPage = total == 0 ? 1 : (int) Math.ceil((double) total / pageSize);
-        int fromIndex = Math.min((pageNumber - 1) * pageSize, total);
-        int toIndex = Math.min(fromIndex + pageSize, total);
-        List<PostResponseDto> items = filtered.subList(fromIndex, toIndex).stream()
+        int offset = (pageNumber - 1) * pageSize;
+        List<Post> page = postRepository.findPostsPageWithFilters(filter.titleQuery(), filter.tags(), pageSize, offset);
+        List<PostResponseDto> items = page.stream()
                 .map(post -> toPostResponse(post, true))
                 .toList();
         return new PostListResponseDto(items, pageNumber > 1, pageNumber < lastPage, lastPage);
@@ -203,17 +199,6 @@ public class PostService {
             }
         }
         return new SearchFilter(tags, String.join(" ", titleTerms));
-    }
-
-    private boolean matches(Post post, SearchFilter filter) {
-        boolean titleOk = filter.titleQuery().isBlank()
-                || post.title().toLowerCase(Locale.ROOT).contains(filter.titleQuery());
-        boolean tagsOk = filter.tags().isEmpty()
-                || post.tags().stream()
-                .map(tag -> tag.toLowerCase(Locale.ROOT))
-                .collect(java.util.stream.Collectors.toSet())
-                .containsAll(filter.tags());
-        return titleOk && tagsOk;
     }
 
     private record SearchFilter(List<String> tags, String titleQuery) {

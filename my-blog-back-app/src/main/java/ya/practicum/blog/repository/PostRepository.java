@@ -8,9 +8,11 @@ import ya.practicum.blog.model.Post;
 import ya.practicum.blog.model.PostImage;
 
 import java.sql.PreparedStatement;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -31,15 +33,38 @@ public class PostRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public List<Post> findAll() {
-        String sql = """
+    /**
+     * Counts posts matching title substring (case-insensitive) and hashtag filters against CSV {@code tags}.
+     * Tag matching uses comma boundaries so {@code java} does not match {@code javascript}.
+     */
+    public int countPostsWithFilters(String titleQueryLower, List<String> tagFiltersLower) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM posts p WHERE 1=1 ");
+        List<Object> args = new ArrayList<>();
+        appendSearchFilters(sql, args, titleQueryLower, tagFiltersLower);
+        Integer n = jdbcTemplate.queryForObject(sql.toString(), Integer.class, args.toArray());
+        return n != null ? n : 0;
+    }
+
+    /**
+     * Paginated posts with the same filter semantics as {@link #countPostsWithFilters}, newest {@code id} first.
+     */
+    public List<Post> findPostsPageWithFilters(String titleQueryLower, List<String> tagFiltersLower, int limit, int offset) {
+        StringBuilder sql = new StringBuilder("""
                 SELECT p.id, p.title, p.text, p.tags, p.likes_count, COUNT(c.id) AS comments_count
                 FROM posts p
                 LEFT JOIN comments c ON c.post_id = p.id
-                GROUP BY p.id
+                WHERE 1=1
+                """);
+        List<Object> args = new ArrayList<>();
+        appendSearchFilters(sql, args, titleQueryLower, tagFiltersLower);
+        sql.append("""
+                GROUP BY p.id, p.title, p.text, p.tags, p.likes_count
                 ORDER BY p.id DESC
-                """;
-        return jdbcTemplate.query(sql, POST_ROW_MAPPER);
+                LIMIT ? OFFSET ?
+                """);
+        args.add(limit);
+        args.add(offset);
+        return jdbcTemplate.query(sql.toString(), POST_ROW_MAPPER, args.toArray());
     }
 
     public Optional<Post> findById(long id) {
@@ -97,6 +122,34 @@ public class PostRepository {
             }
             return Optional.of(new PostImage(rs.getBytes("image_data"), rs.getString("image_content_type")));
         }, postId);
+    }
+
+    private void appendSearchFilters(
+            StringBuilder sql,
+            List<Object> args,
+            String titleQueryLower,
+            List<String> tagFiltersLower
+    ) {
+        if (titleQueryLower != null && !titleQueryLower.isBlank()) {
+            sql.append(" AND LOWER(p.title) LIKE ? ESCAPE '\\' ");
+            args.add("%" + escapeLikePattern(titleQueryLower) + "%");
+        }
+        if (tagFiltersLower != null) {
+            for (String tag : tagFiltersLower) {
+                if (tag == null || tag.isBlank()) {
+                    continue;
+                }
+                sql.append(" AND LOWER(CONCAT(',', p.tags, ',')) LIKE ? ESCAPE '\\' ");
+                args.add("%," + escapeLikePattern(tag.toLowerCase(Locale.ROOT)) + ",%");
+            }
+        }
+    }
+
+    private static String escapeLikePattern(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        return raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     private static String serializeTags(List<String> tags) {

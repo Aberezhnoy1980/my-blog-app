@@ -77,6 +77,28 @@ class BlogServicesIntegrationTest {
     }
 
     @Test
+    void shouldSearchAndPaginatePostsInDatabase() {
+        for (int i = 0; i < 5; i++) {
+            postService.createPost(new PostUpsertRequestDto(null, "Series " + i, "body", List.of("shared")));
+        }
+        postService.createPost(new PostUpsertRequestDto(null, "Unique marker title", "body", List.of("other")));
+
+        PostListResponseDto byTitle = postService.getPosts("marker", 1, 10);
+        assertEquals(1, byTitle.posts().size());
+        assertEquals("Unique marker title", byTitle.posts().getFirst().title());
+
+        PostListResponseDto byTag = postService.getPosts("#shared", 1, 10);
+        assertEquals(5, byTag.posts().size());
+
+        PostListResponseDto page1 = postService.getPosts("", 1, 2);
+        assertEquals(2, page1.posts().size());
+        assertEquals(3, page1.lastPage());
+
+        PostListResponseDto page3 = postService.getPosts("", 3, 2);
+        assertEquals(2, page3.posts().size());
+    }
+
+    @Test
     void shouldRejectInvalidPostPayload() {
         assertThrows(BadRequestException.class, () -> postService.createPost(
                 new PostUpsertRequestDto(null, " ", "text", List.of("tag"))
