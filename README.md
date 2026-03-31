@@ -1,87 +1,259 @@
-# My Blog Back App
+# My Blog App
 
-Бэкенд приложения-блога, разрабатываемый в рамках третьего спринта курса «Middle Java‑разработчик» Яндекс Практикума. Проект реализован на Java с использованием Spring Framework и разворачивается в сервлет‑контейнере (Tomcat/Jetty). 
+[![CI](https://github.com/Aberezhnoy1980/my-blog-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Aberezhnoy1980/my-blog-app/actions/workflows/ci.yml)
+![Java 21](https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white)
+![Spring Framework](https://img.shields.io/badge/Spring_Framework-6.1-6DB33F?logo=spring&logoColor=white)
+![Maven](https://img.shields.io/badge/Maven-3.9-C71A36?logo=apachemaven&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![Flyway](https://img.shields.io/badge/Flyway-10-CC0200?logo=flyway&logoColor=white)
+![Docker Compose](https://img.shields.io/badge/Docker_Compose-v2-2496ED?logo=docker&logoColor=white)
 
-## Цели проекта
+Учебный full-stack проект (Yandex Practicum, Sprint 3) с акцентом на production-friendly практики:
 
-- Реализовать бэкенд для готового фронтенда блога (React + Nginx), предоставленного Практикумом.
-- Обеспечить полный набор REST‑эндпоинтов для работы с постами и комментариями, включая поиск, пагинацию, лайки и работу с картинками. 
-- Показать владение Spring Framework (Core, Web, Data, AOP), работой с БД и интеграционным тестированием.
+- backend: Spring MVC без Spring Boot, WAR в Tomcat, JDBC/JdbcTemplate;
+- migrations: Flyway (schema + demo seed data);
+- infra: Docker Compose (PostgreSQL + Tomcat + Nginx);
+- quality: integration tests, CI, unified API error format, AOP logging.
 
-Подробное техническое задание описано в файле [`docs/technical-spec.md`](docs/technical-spec.md).
+## Содержание
 
-## Общая архитектура
+- [My Blog App](#my-blog-app)
+  - [Содержание](#содержание)
+  - [Быстрый старт](#быстрый-старт)
+    - [Вариант 1 (рекомендуется): весь стек через Docker Compose](#вариант-1-рекомендуется-весь-стек-через-docker-compose)
+    - [Вариант 2: backend локально без Docker (dev profile)](#вариант-2-backend-локально-без-docker-dev-profile)
+  - [Архитектура](#архитектура)
+  - [Функциональность API](#функциональность-api)
+    - [Posts](#posts)
+    - [Comments](#comments)
+  - [Профили и конфигурация](#профили-и-конфигурация)
+  - [Команды и сценарии](#команды-и-сценарии)
+    - [Сборка и тесты](#сборка-и-тесты)
+    - [Docker Compose](#docker-compose)
+    - [Smoke checks](#smoke-checks)
+  - [База данных и Flyway](#база-данных-и-flyway)
+  - [Тестирование и CI](#тестирование-и-ci)
+  - [Структура репозитория](#структура-репозитория)
+  - [Known frontend quirks](#known-frontend-quirks)
+  - [Roadmap](#roadmap)
+  - [What I would improve in production](#what-i-would-improve-in-production)
+  - [Contributing and License](#contributing-and-license)
+  - [Документация](#документация)
 
-Архитектура следует описанию из задания Практикума: 
+## Быстрый старт
 
-- **Фронтенд**: React‑приложение, работающее за Nginx, доступно по `http://localhost` и общающееся с бэкендом по REST. 
-- **Бэкенд**: Java‑приложение на Spring Framework 6.1+ без Spring Boot, запущенное в Tomcat и доступное по `http://localhost:8080`. 
-- **База данных**: PostgreSQL или H2 (в зависимости от профиля), хранит посты и комментарии. 
+### Вариант 1 (рекомендуется): весь стек через Docker Compose
 
-Планируется единый `docker-compose.yml` для поднятия фронтенда, бэкенда и БД.
+Из корня репозитория:
 
-## Функциональность бэкенда (кратко)
+```bash
+docker compose up --build
+```
 
-Бэкенд предоставляет REST‑эндпоинты, совместимые с фронтендом Практикума: 
+После старта:
 
-- Работа с постами:
-  - Получение списка постов с поиском и пагинацией: `GET /api/posts?search=...&pageNumber=...&pageSize=...`.
-  - Получение одного поста: `POST /api/posts/{id}`.
-  - Создание, редактирование и удаление постов: `POST /api/posts`, `PUT /api/posts/{id}`, `DELETE /api/posts/{id}`.
-  - Лайки постов: `POST /api/posts/{id}/likes`.
-  - Работа с картинками постов: `PUT /api/posts/{id}/image`, `GET /api/posts/{id}/image`. 
+- UI: [http://localhost](http://localhost)
+- API health (через Nginx): `curl -sS http://localhost/api/health`
+- API direct (Tomcat): `curl -sS http://localhost:8080/api/health`
 
-- Работа с комментариями:
-  - Получение списка комментариев поста: `GET /api/posts/{postId}/comments`.
-  - Получение одного комментария: `GET /api/posts/{postId}/comments/{id}`.
-  - Создание, редактирование и удаление комментариев:
-    - `POST /api/posts/{postId}/comments`
-    - `PUT /api/posts/{postId}/comments/{id}`
-    - `DELETE /api/posts/{postId}/comments/{id}`. 
+### Вариант 2: backend локально без Docker (dev profile)
 
-Детальные контрактные форматы запросов/ответов и правила поиска описаны в `docs/technical-spec.md`. 
+Нужна локальная PostgreSQL на `localhost:5432` с БД `my_blog` и пользователем `postgres/postgres`.
 
-## Технологический стек
+```bash
+mvn -B -pl my-blog-back-app -am package
+# затем деплой в локальный Tomcat (или через cargo plugin)
+```
 
-- Java 21. 
-- Spring Framework 6.1+ (Core, Web, Data, AOP).
-- Сервлет‑контейнер: Tomcat 10.1.52.
-- База данных: PostgreSQL (prod) / H2 (тесты, dev). 
-- Система сборки: Maven (war‑пакетирование, плагины для деплоя в контейнер).
-- Тестирование: JUnit 5, Spring TestContext Framework, WebMvc, H2. 
-- Контейнеризация (план): Docker, Docker Compose.
+## Архитектура
 
-## Структура репозитория (план)
+![Архитектура проекта](docs/img/project_arch.png)
+
+- **Frontend**: готовый React bundle из Practicum (`my-blog-front-app/dist`) за Nginx.
+- **Backend**: Spring MVC (Java config), layered architecture:
+  - `controller` -> `service` -> `repository` -> PostgreSQL.
+- **Database**: PostgreSQL в Docker и H2 для integration tests.
+- **Migrations**: Flyway выполняется на старте backend.
+
+Сетевой контракт в Compose:
+
+- `http://localhost` (Nginx, UI)
+- `http://localhost:8080` (Tomcat, API)
+- SPA в бандле обращается к API по `http://localhost:8080/api/...`.
+
+## Функциональность API
+
+### Posts
+
+- `GET /api/posts?search=...&pageNumber=...&pageSize=...`
+- `POST /api/posts/{id}` (compat endpoint под контракт фронта)
+- `GET /api/posts/{id}`
+- `POST /api/posts`
+- `PUT /api/posts/{id}`
+- `DELETE /api/posts/{id}`
+- `POST /api/posts/{id}/likes`
+- `PUT /api/posts/{id}/image`
+- `GET /api/posts/{id}/image`
+
+### Comments
+
+- `GET /api/posts/{postId}/comments`
+- `GET /api/posts/{postId}/comments/{id}`
+- `POST /api/posts/{postId}/comments`
+- `PUT /api/posts/{postId}/comments/{id}`
+- `DELETE /api/posts/{postId}/comments/{id}`
+
+## Профили и конфигурация
+
+Используются профили `dev`, `test`, `prod`.
+
+- `application-dev.properties`:
+  - `db.url=jdbc:postgresql://localhost:5432/my_blog`
+  - локальная разработка.
+- `application-test.properties`:
+  - H2 in-memory (`MODE=PostgreSQL`)
+  - используется integration tests.
+- `application-prod.properties`:
+  - `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` из env vars.
+
+Ключевые env vars для `prod`:
+
+- `DB_URL`
+- `DB_USERNAME`
+- `DB_PASSWORD`
+
+## Команды и сценарии
+
+### Сборка и тесты
+
+```bash
+mvn -B verify
+```
+
+```bash
+mvn -B -pl my-blog-back-app -am test
+```
+
+### Docker Compose
+
+Запуск:
+
+```bash
+docker compose up --build
+```
+
+Фон:
+
+```bash
+docker compose up -d --build
+```
+
+Остановка:
+
+```bash
+docker compose down
+```
+
+Логи:
+
+```bash
+docker compose logs -f backend
+```
+
+Состояние:
+
+```bash
+docker compose ps
+```
+
+### Smoke checks
+
+```bash
+curl -sS http://localhost/api/health
+curl -sS "http://localhost:8080/api/posts?search=&pageNumber=1&pageSize=5"
+```
+
+## База данных и Flyway
+
+- Данные PostgreSQL персистятся в `./postgres-data` (bind mount).
+- Каталог не коммитится (`.gitignore`).
+- Flyway migrations:
+  - `V1__init_schema.sql` — schema;
+  - `V2__demo_seed.sql` — demo posts/comments;
+  - `V3__demo_seed_more_comments.sql` — доп. demo comments;
+  - `V4__Normalize_tags` (Java) — таблицы `tags` и `post_tags`, перенос из legacy CSV в `posts.tags`, затем удаление этой колонки.
+- На существующей БД применяются только новые migration versions (`flyway_schema_history`).
+
+## Тестирование и CI
+
+- Integration tests:
+  - `BlogServicesIntegrationTest`
+  - `BlogControllersIntegrationTest` (MockMvc)
+- CI (GitHub Actions): `mvn -B verify` на push/PR.
+
+## Структура репозитория
 
 ```text
 .
-├── my-blog-back-app/              # Maven-проект бэкенда (Spring + war)
-├── my-blog-front-app/             # Фронтенд Практикума (распакованный и при необходимости исправленный)
-├── persist-db
+├── my-blog-back-app/                        # backend module (Spring MVC, WAR)
+│   ├── src/main/java/ya/practicum/blog/
+│   │   ├── config/
+│   │   ├── controller/
+│   │   ├── service/
+│   │   ├── repository/
+│   │   ├── db/migration/                    # Flyway Java migrations
+│   │   ├── dto/
+│   │   └── model/
+│   └── src/main/resources/
+│       ├── db/migration/
+│       ├── application-*.properties
+│       └── logback*.xml
+├── my-blog-front-app/                       # Practicum frontend bundle + nginx config
+├── docker/backend/Dockerfile                # multi-stage build -> Tomcat image
+├── docker-compose.yml
 ├── docs/
-│   ├── technical-spec.md # Техническое задание на бэкенд
-│   └── ...               # Дополнительная документация (prerequisites, диаграммы и т.п.)
-├── docker-compose.yml    # Оркестрация фронта, бэкенда и БД
 └── README.md
 ```
 
-## Запуск фронтенда (из задания Практикума)
+## Known frontend quirks
 
-Фронтенд поднимается через Docker Compose из архива, предоставленного Практикумом: 
+Проект использует готовый frontend bundle из Practicum (без исходников), поэтому в backend добавлены совместимые handling-пути:
 
-1. Распаковать архив фронтенда.
-2. Перейти в директорию с `docker-compose.yaml`.
-3. Выполнить `docker compose up -d`.
-4. Проверить, что контейнер запущен через `docker ps`.
-5. Открыть `http://localhost` в браузере. 
+- `POST /api/posts/{id}` (detail compat);
+- `GET /api/posts/undefined/comments` compatibility endpoint;
+- tolerant handling для image upload/content-type;
+- tolerant handling для edge-case update flow с пустыми `tags`.
 
-После реализации бэкенда фронтенд начнёт работать с ним по REST‑эндпоинтам, перечисленным выше. 
+Это позволяет сохранить контракт задания и стабильный UX без модификации frontend bundle.
 
-## Статус проекта
+## Roadmap
 
-- [x] Анализ задания и формирование технического задания (`docs/technical-spec.md`).
-- [ ] Базовая инициализация Maven‑проекта бэкенда.
-- [ ] Интеграция с выбранным сервлет‑контейнером и БД.
-- [ ] Реализация REST‑эндпоинтов.
-- [ ] Покрытие сервисного слоя и интеграций тестами.
-- [ ] Настройка Docker Compose и (опционально) CI/CD.
+- [ ] Добавить автоматизированный smoke suite для Compose-стека (health + ключевые REST-сценарии).
+- [ ] Улучшить observability: request correlation id и более структурированные логи для API.
+- [ ] Добавить API contract artifact (OpenAPI/Swagger или machine-readable endpoint spec).
+- [ ] Подготовить production deployment notes (reverse proxy, secrets, backup/restore, rollback strategy).
+
+## What I would improve in production
+
+- **Security hardening**
+  - Ввести authentication/authorization для mutating endpoints.
+  - Добавить rate limiting и строгую CORS policy по environment.
+- **Validation and API quality**
+  - Вынести DTO validation на Bean Validation (`jakarta.validation`) и унифицировать error catalog.
+  - Добавить versioning strategy для API и более строгий backward-compat policy.
+- **Data and reliability**
+  - Добавить миграции с rollback plan и регулярный backup/restore drill.
+  - Перевести image storage из DB BLOB в object storage (S3-compatible) для масштабирования.
+- **Testing and delivery**
+  - Расширить покрытие integration tests до negative/malformed input cases.
+  - Добавить container-level integration stage в CI (test against real PostgreSQL + Tomcat image).
+
+## Contributing and License
+
+- Contribution guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- License: [`MIT`](LICENSE)
+
+## Документация
+
+- Техническое задание: [`docs/technical-spec.md`](docs/technical-spec.md)
+- Список требований/подготовка: [`docs/prerequisites.md`](docs/prerequisites.md)

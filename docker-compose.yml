@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: my_blog
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      # Данные БД на хосте (рядом с репозиторием), переживают пересборку образов и перезапуск контейнеров.
+      - ./postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d my_blog"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - blog
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/my_blog
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+    ports:
+      # Unchanged Practicum bundle: API base URL is http://localhost:8080 (SPA is on :80 via Nginx).
+      - "8080:8080"
+    networks:
+      - blog
+
+  frontend:
+    build:
+      context: ./my-blog-front-app
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - blog
+
+networks:
+  blog:

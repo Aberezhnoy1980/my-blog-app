@@ -1,0 +1,206 @@
+package ya.practicum.blog.service;
+
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ya.practicum.blog.BlogConstraints;
+import ya.practicum.blog.dto.PostListResponseDto;
+import ya.practicum.blog.dto.PostResponseDto;
+import ya.practicum.blog.dto.PostUpsertRequestDto;
+import ya.practicum.blog.exception.BadRequestException;
+import ya.practicum.blog.exception.NotFoundException;
+import ya.practicum.blog.model.Post;
+import ya.practicum.blog.model.PostImage;
+import ya.practicum.blog.repository.PostRepository;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+
+@Service
+public class PostService {
+
+    private final PostRepository postRepository;
+    private final Validator beanValidator;
+
+    public PostService(PostRepository postRepository, Validator beanValidator) {
+        this.postRepository = postRepository;
+        this.beanValidator = beanValidator;
+    }
+
+    /**
+     * Returns post feed with backend-side search and pagination.
+     */
+    @Transactional(readOnly = true)
+    public PostListResponseDto getPosts(String search, int pageNumber, int pageSize) {
+        validatePaging(pageNumber, pageSize);
+        SearchFilter filter = parseSearch(search);
+        int total = postRepository.countPostsWithFilters(filter.titleQuery(), filter.tags());
+        int lastPage = total == 0 ? 1 : (int) Math.ceil((double) total / pageSize);
+        int offset = (pageNumber - 1) * pageSize;
+        List<Post> page = postRepository.findPostsPageWithFilters(filter.titleQuery(), filter.tags(), pageSize, offset);
+        List<PostResponseDto> items = page.stream()
+                .map(post -> toPostResponse(post, true))
+                .toList();
+        return new PostListResponseDto(items, pageNumber > 1, pageNumber < lastPage, lastPage);
+    }
+
+    /**
+     * Returns full post details by id.
+     */
+    @Transactional(readOnly = true)
+    public PostResponseDto getPost(long id) {
+        Post post = postRepository.findById(id).orElseThrow(() -> new NotFoundException("Post not found"));
+        return toPostResponse(post, false);
+    }
+
+    /**
+     * Creates a new post.
+     */
+    @Transactional
+    public PostResponseDto createPost(PostUpsertRequestDto request) {
+        validatePostRequest(request, false, false);
+        Post toCreate = new Post(
+                null,
+                request.title().trim(),
+                request.text().trim(),
+                request.tags(),
+                0,
+                0
+        );
+        return toPostResponse(postRepository.create(toCreate), false);
+    }
+
+    /**
+     * Updates an existing post by id.
+     */
+    @Transactional
+    public PostResponseDto updatePost(long id, PostUpsertRequestDto request) {
+        validatePostRequest(request, true, true);
+        if (request.id() != null && request.id() != id) {
+            throw new BadRequestException("Path id and body id must be equal");
+        }
+        Post existing = postRepository.findById(id).orElseThrow(() -> new NotFoundException("Post not found"));
+        List<String> normalizedTags = request.tags().isEmpty() ? existing.tags() : request.tags();
+        Post toUpdate = new Post(
+                id,
+                request.title().trim(),
+                request.text().trim(),
+                normalizedTags,
+                0,
+                0
+        );
+        return toPostResponse(postRepository.update(id, toUpdate), false);
+    }
+
+    /**
+     * Deletes a post and its child comments.
+     */
+    @Transactional
+    public void deletePost(long id) {
+        if (postRepository.deleteById(id) == 0) {
+            throw new NotFoundException("Post not found");
+        }
+    }
+
+    /**
+     * Increments likes counter for a post.
+     */
+    @Transactional
+    public int incrementLikes(long id) {
+        postRepository.findById(id).orElseThrow(() -> new NotFoundException("Post not found"));
+        return postRepository.incrementLikes(id);
+    }
+
+    /**
+     * Updates post image bytes and content type.
+     */
+    @Transactional
+    public void updatePostImage(long id, byte[] imageData, String contentType) {
+        if (imageData == null || imageData.length == 0) {
+            throw new BadRequestException("Image is empty");
+        }
+        if (imageData.length > BlogConstraints.MAX_IMAGE_SIZE_BYTES) {
+            throw new BadRequestException("Image is too large");
+        }
+        // Keep upload path compatible with different browser/filepicker behaviors.
+        String normalizedType = (contentType == null || contentType.isBlank())
+                ? "application/octet-stream"
+                : contentType;
+        if (postRepository.updateImage(id, imageData, normalizedType) == 0) {
+            throw new NotFoundException("Post not found");
+        }
+    }
+
+    /**
+     * Returns post image payload.
+     */
+    @Transactional(readOnly = true)
+    public PostImage getPostImage(long id) {
+        postRepository.findById(id).orElseThrow(() -> new NotFoundException("Post not found"));
+        Optional<PostImage> image = postRepository.findImage(id);
+        return image.orElseThrow(() -> new NotFoundException("Post image not found"));
+    }
+
+    private void validatePaging(int pageNumber, int pageSize) {
+        if (pageNumber < 1 || pageSize < 1) {
+            throw new BadRequestException("pageNumber and pageSize must be positive");
+        }
+    }
+
+    private void validatePostRequest(PostUpsertRequestDto request, boolean idAllowed, boolean allowEmptyTagsForUpdate) {
+        if (request == null) {
+            throw new BadRequestException("Request body is required");
+        }
+        for (ConstraintViolation<PostUpsertRequestDto> v : beanValidator.validate(request)) {
+            throw new BadRequestException(v.getMessage());
+        }
+        if (!idAllowed && request.id() != null) {
+            throw new BadRequestException("id must be empty for create");
+        }
+        if (request.tags().isEmpty() && !allowEmptyTagsForUpdate) {
+            throw new BadRequestException("tags must contain at least one tag");
+        }
+    }
+
+    private PostResponseDto toPostResponse(Post post, boolean truncateText) {
+        String text = truncateText ? truncate(post.text(), BlogConstraints.POST_LIST_TEXT_PREVIEW_LENGTH) : post.text();
+        return new PostResponseDto(
+                post.id(),
+                post.title(),
+                text,
+                post.tags(),
+                post.likesCount(),
+                post.commentsCount()
+        );
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength) + "...";
+    }
+
+    private SearchFilter parseSearch(String search) {
+        if (search == null || search.isBlank()) {
+            return new SearchFilter(List.of(), "");
+        }
+        String[] tokens = search.trim().split("\\s+");
+        List<String> tags = new ArrayList<>();
+        List<String> titleTerms = new ArrayList<>();
+        for (String token : tokens) {
+            if (token.startsWith("#") && token.length() > 1) {
+                tags.add(token.substring(1).toLowerCase(Locale.ROOT));
+            } else {
+                titleTerms.add(token.toLowerCase(Locale.ROOT));
+            }
+        }
+        return new SearchFilter(tags, String.join(" ", titleTerms));
+    }
+
+    private record SearchFilter(List<String> tags, String titleQuery) {
+    }
+}
