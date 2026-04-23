@@ -1,16 +1,20 @@
-# Build WAR from multi-module root (parent pom + my-blog-back-app).
-FROM maven:3.9-eclipse-temurin-21-alpine AS build
+# Build executable Boot JAR from multi-module root.
+FROM eclipse-temurin:21-jdk AS build
 WORKDIR /work
-COPY pom.xml .
+COPY gradlew .
+COPY gradlew.bat .
+COPY gradle ./gradle
+COPY settings.gradle .
+COPY build.gradle .
 COPY my-blog-back-app ./my-blog-back-app
-RUN mvn -B -pl my-blog-back-app -am package -DskipTests
+RUN ./gradlew --no-daemon :my-blog-back-app:bootJar -x test
 
-# Tomcat 10 + Java 21 (Jakarta EE 10 / Servlet 6).
-FROM tomcat:10.1-jdk21-temurin-noble
+# Runtime image: Java 21 + app.jar
+FROM eclipse-temurin:21-jre
+WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
-RUN rm -rf /usr/local/tomcat/webapps/*
-COPY --from=build /work/my-blog-back-app/target/my-blog-back-app.war /usr/local/tomcat/webapps/ROOT.war
-ENV CATALINA_OPTS="-Dspring.profiles.active=prod"
+COPY --from=build /work/my-blog-back-app/build/libs/*.jar /app/app.jar
 EXPOSE 8080
+ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-jar", "/app/app.jar"]
