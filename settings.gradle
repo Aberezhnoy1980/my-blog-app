@@ -1,0 +1,2 @@
+rootProject.name = 'my-blog-app'
+include 'my-blog-back-app'

@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - module_one_sprint_three_branch
+      - module_one_sprint_four_branch
   pull_request:
     branches:
       - main
@@ -22,7 +23,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: maven
+          cache: gradle
 
       - name: Build and run tests
-        run: mvn -B verify
+        run: ./gradlew --no-daemon check

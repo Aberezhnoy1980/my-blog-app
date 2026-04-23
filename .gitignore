@@ -2,7 +2,9 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+.gradle/
 .kotlin
+.bootstrap-template/
 
 ### IntelliJ IDEA ###
 .idea/

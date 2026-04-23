@@ -2,17 +2,17 @@
 
 [![CI](https://github.com/Aberezhnoy1980/my-blog-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Aberezhnoy1980/my-blog-app/actions/workflows/ci.yml)
 ![Java 21](https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white)
-![Spring Framework](https://img.shields.io/badge/Spring_Framework-6.1-6DB33F?logo=spring&logoColor=white)
-![Maven](https://img.shields.io/badge/Maven-3.9-C71A36?logo=apachemaven&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5-6DB33F?logo=spring&logoColor=white)
+![Gradle](https://img.shields.io/badge/Gradle-8.14-02303A?logo=gradle&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Flyway](https://img.shields.io/badge/Flyway-10-CC0200?logo=flyway&logoColor=white)
 ![Docker Compose](https://img.shields.io/badge/Docker_Compose-v2-2496ED?logo=docker&logoColor=white)
 
-Учебный full-stack проект (Yandex Practicum, Sprint 3) с акцентом на production-friendly практики:
+Учебный full-stack проект (Yandex Practicum, Sprint 4) с акцентом на production-friendly практики:
 
-- backend: Spring MVC без Spring Boot, WAR в Tomcat, JDBC/JdbcTemplate;
+- backend: Spring Boot, Executable JAR, embedded Tomcat, JDBC/JdbcTemplate;
 - migrations: Flyway (schema + demo seed data);
-- infra: Docker Compose (PostgreSQL + Tomcat + Nginx);
+- infra: Docker Compose (PostgreSQL + Spring Boot backend + Nginx);
 - quality: integration tests, CI, unified API error format, AOP logging.
 
 ## Содержание
@@ -54,15 +54,14 @@ docker compose up --build
 
 - UI: [http://localhost](http://localhost)
 - API health (через Nginx): `curl -sS http://localhost/api/health`
-- API direct (Tomcat): `curl -sS http://localhost:8080/api/health`
+- API direct (Boot app): `curl -sS http://localhost:8080/api/health`
 
 ### Вариант 2: backend локально без Docker (dev profile)
 
 Нужна локальная PostgreSQL на `localhost:5432` с БД `my_blog` и пользователем `postgres/postgres`.
 
 ```bash
-mvn -B -pl my-blog-back-app -am package
-# затем деплой в локальный Tomcat (или через cargo plugin)
+./gradlew :my-blog-back-app:bootRun --args='--spring.profiles.active=dev'
 ```
 
 ## Архитектура
@@ -70,7 +69,7 @@ mvn -B -pl my-blog-back-app -am package
 ![Архитектура проекта](docs/img/project_arch.png)
 
 - **Frontend**: готовый React bundle из Practicum (`my-blog-front-app/dist`) за Nginx.
-- **Backend**: Spring MVC (Java config), layered architecture:
+- **Backend**: Spring Boot (auto-configuration), layered architecture:
   - `controller` -> `service` -> `repository` -> PostgreSQL.
 - **Database**: PostgreSQL в Docker и H2 для integration tests.
 - **Migrations**: Flyway выполняется на старте backend.
@@ -78,7 +77,7 @@ mvn -B -pl my-blog-back-app -am package
 Сетевой контракт в Compose:
 
 - `http://localhost` (Nginx, UI)
-- `http://localhost:8080` (Tomcat, API)
+- `http://localhost:8080` (Spring Boot app, API)
 - SPA в бандле обращается к API по `http://localhost:8080/api/...`.
 
 ## Функциональность API
@@ -108,13 +107,13 @@ mvn -B -pl my-blog-back-app -am package
 Используются профили `dev`, `test`, `prod`.
 
 - `application-dev.properties`:
-  - `db.url=jdbc:postgresql://localhost:5432/my_blog`
+  - `spring.datasource.url=jdbc:postgresql://localhost:5432/my_blog`
   - локальная разработка.
 - `application-test.properties`:
   - H2 in-memory (`MODE=PostgreSQL`)
   - используется integration tests.
 - `application-prod.properties`:
-  - `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` из env vars.
+  - `spring.datasource.*` через `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
 
 Ключевые env vars для `prod`:
 
@@ -127,11 +126,15 @@ mvn -B -pl my-blog-back-app -am package
 ### Сборка и тесты
 
 ```bash
-mvn -B verify
+./gradlew check
 ```
 
 ```bash
-mvn -B -pl my-blog-back-app -am test
+./gradlew :my-blog-back-app:test
+```
+
+```bash
+./gradlew :my-blog-back-app:bootJar
 ```
 
 ### Docker Compose
@@ -189,13 +192,17 @@ curl -sS "http://localhost:8080/api/posts?search=&pageNumber=1&pageSize=5"
 - Integration tests:
   - `BlogServicesIntegrationTest`
   - `BlogControllersIntegrationTest` (MockMvc)
-- CI (GitHub Actions): `mvn -B verify` на push/PR.
+- CI (GitHub Actions): `./gradlew --no-daemon check` на push/PR.
 
 ## Структура репозитория
 
 ```text
 .
-├── my-blog-back-app/                        # backend module (Spring MVC, WAR)
+├── build.gradle
+├── settings.gradle
+├── gradlew
+├── gradle/wrapper/
+├── my-blog-back-app/                        # backend module (Spring Boot, executable JAR)
 │   ├── src/main/java/ya/practicum/blog/
 │   │   ├── config/
 │   │   ├── controller/
@@ -209,7 +216,7 @@ curl -sS "http://localhost:8080/api/posts?search=&pageNumber=1&pageSize=5"
 │       ├── application-*.properties
 │       └── logback*.xml
 ├── my-blog-front-app/                       # Practicum frontend bundle + nginx config
-├── docker/backend/Dockerfile                # multi-stage build -> Tomcat image
+├── docker/backend/Dockerfile                # multi-stage build -> Boot JAR image
 ├── docker-compose.yml
 ├── docs/
 └── README.md
@@ -246,7 +253,7 @@ curl -sS "http://localhost:8080/api/posts?search=&pageNumber=1&pageSize=5"
   - Перевести image storage из DB BLOB в object storage (S3-compatible) для масштабирования.
 - **Testing and delivery**
   - Расширить покрытие integration tests до negative/malformed input cases.
-  - Добавить container-level integration stage в CI (test against real PostgreSQL + Tomcat image).
+  - Добавить container-level integration stage в CI (test against real PostgreSQL + Boot image).
 
 ## Contributing and License
 
