@@ -3,16 +3,10 @@ package ya.practicum.blog.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.transaction.annotation.Transactional;
-import ya.practicum.blog.config.DatabaseConfig;
-import ya.practicum.blog.config.ValidationConfig;
 import ya.practicum.blog.dto.CommentResponseDto;
 import ya.practicum.blog.dto.CommentUpsertRequestDto;
 import ya.practicum.blog.dto.PostListResponseDto;
@@ -26,20 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringJUnitConfig(classes = {DatabaseConfig.class, ValidationConfig.class, BlogServicesIntegrationTest.ServiceTestConfig.class})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles("test")
-@TestPropertySource(properties = "spring.profiles.active=test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @Transactional
 class BlogServicesIntegrationTest {
-    @Configuration
-    @ComponentScan(basePackages = {
-            "ya.practicum.blog.repository",
-            "ya.practicum.blog.service"
-    })
-    static class ServiceTestConfig {
-    }
-
     @Autowired
     private PostService postService;
 
